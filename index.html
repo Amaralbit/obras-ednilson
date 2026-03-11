@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏗</text></svg>">
   <title>Obras Ednilson</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏗</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -28,10 +29,30 @@
       background: var(--cream);
       color: var(--dark);
       min-height: 100vh;
-      cursor: default;
     }
 
-    /* ── HEADER ─────────────────────────────── */
+    /* ── LOADING SCREEN ─── */
+    #loadingScreen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--dark);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.2rem; transition: opacity 0.5s;
+    }
+    #loadingScreen.hide { opacity: 0; pointer-events: none; }
+    .loading-title {
+      font-family: 'Playfair Display', serif;
+      color: var(--gold); font-size: 1.8rem;
+    }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(200,169,110,0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── HEADER ─── */
     header {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
@@ -40,17 +61,12 @@
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(200,169,110,0.2);
     }
-
     .site-title {
       font-family: 'Playfair Display', serif;
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--gold);
-      letter-spacing: 0.02em;
+      font-size: 1.5rem; font-weight: 700;
+      color: var(--gold); letter-spacing: 0.02em;
     }
-
     .header-right { display: flex; align-items: center; gap: 1.5rem; }
-
     .admin-btn {
       background: none; border: 1px solid rgba(200,169,110,0.4);
       color: var(--gold-light); padding: 0.4rem 1rem;
@@ -61,23 +77,18 @@
     .admin-btn:hover { background: rgba(200,169,110,0.15); border-color: var(--gold); }
     .admin-btn.active { background: var(--gold); color: var(--dark); border-color: var(--gold); }
 
-    /* ── HERO SLIDER ─────────────────────────── */
-    .hero {
-      position: relative; height: 100vh; overflow: hidden;
-    }
-
+    /* ── HERO ─── */
+    .hero { position: relative; height: 100vh; overflow: hidden; }
     .hero-slide {
       position: absolute; inset: 0;
       opacity: 0; transition: opacity 1.2s ease;
       background-size: cover; background-position: center;
     }
     .hero-slide.active { opacity: 1; }
-
     .hero-overlay {
       position: absolute; inset: 0;
       background: linear-gradient(to bottom, rgba(26,23,20,0.3) 0%, rgba(26,23,20,0.7) 100%);
     }
-
     .hero-content {
       position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%);
       text-align: center; color: white; width: 90%; max-width: 700px;
@@ -88,17 +99,12 @@
       font-weight: 900; line-height: 1.1;
       text-shadow: 0 2px 20px rgba(0,0,0,0.5);
     }
-    .hero-content p {
-      margin-top: 0.8rem;
-      font-size: 1rem; color: rgba(255,255,255,0.75);
-      letter-spacing: 0.05em;
-    }
+    .hero-content p { margin-top: 0.8rem; font-size: 1rem; color: rgba(255,255,255,0.75); }
     .hero-slide-label {
       display: inline-block; margin-bottom: 0.8rem;
       font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;
       color: var(--gold-light); border-bottom: 1px solid var(--gold); padding-bottom: 4px;
     }
-
     .hero-dots {
       position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
       display: flex; gap: 10px;
@@ -108,8 +114,6 @@
       border: none; cursor: pointer; transition: all 0.3s; padding: 0;
     }
     .hero-dot.active { background: var(--gold); width: 48px; }
-
-    /* hero controls admin */
     .hero-admin-controls {
       position: absolute; top: 90px; right: 2rem;
       display: none; flex-direction: column; gap: 0.5rem;
@@ -124,31 +128,16 @@
     }
     .hero-ctrl-btn:hover { background: var(--gold); color: var(--dark); }
 
-    /* ── SECTION OBRAS ───────────────────────── */
-    .section-obras {
-      padding: 6rem 3rem 5rem;
-      max-width: 1400px; margin: 0 auto;
-    }
-
+    /* ── OBRAS SECTION ─── */
+    .section-obras { padding: 6rem 3rem 5rem; max-width: 1400px; margin: 0 auto; }
     .section-header {
       display: flex; align-items: flex-end; justify-content: space-between;
       margin-bottom: 3.5rem;
       border-bottom: 1px solid var(--light-gray); padding-bottom: 1.5rem;
     }
-    .section-header h2 {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.5rem; font-weight: 700;
-      color: var(--dark);
-    }
-    .section-header span {
-      font-size: 0.8rem; color: var(--gray);
-      letter-spacing: 0.15em; text-transform: uppercase;
-    }
-
-    /* filter pills */
-    .filter-bar {
-      display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2.5rem;
-    }
+    .section-header h2 { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700; }
+    .section-header span { font-size: 0.8rem; color: var(--gray); letter-spacing: 0.15em; text-transform: uppercase; }
+    .filter-bar { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
     .filter-pill {
       padding: 0.35rem 1rem; border-radius: 999px;
       border: 1px solid var(--light-gray); background: white;
@@ -157,28 +146,20 @@
     }
     .filter-pill:hover { border-color: var(--gold); color: var(--dark); }
     .filter-pill.active { background: var(--dark); color: var(--cream); border-color: var(--dark); }
-
-    /* grid */
     .obras-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 2rem;
     }
-
     .obra-card {
-      background: white; border-radius: 4px;
-      overflow: hidden; cursor: pointer;
+      background: white; border-radius: 4px; overflow: hidden; cursor: pointer;
       transition: transform 0.3s, box-shadow 0.3s;
       box-shadow: 0 1px 8px rgba(26,23,20,0.08);
     }
     .obra-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(26,23,20,0.15); }
-
-    .obra-thumb {
-      position: relative; height: 240px; overflow: hidden; background: var(--light-gray);
-    }
+    .obra-thumb { position: relative; height: 240px; overflow: hidden; background: var(--light-gray); }
     .obra-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
     .obra-card:hover .obra-thumb img { transform: scale(1.06); }
-
     .status-badge {
       position: absolute; top: 12px; left: 12px;
       padding: 4px 12px; border-radius: 2px;
@@ -187,14 +168,9 @@
     .status-venda    { background: #1a7c45; color: white; }
     .status-vendida  { background: var(--rust); color: white; }
     .status-construcao { background: #b87d2a; color: white; }
-
     .obra-info { padding: 1.3rem 1.5rem 1.5rem; }
-    .obra-info h3 {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;
-    }
+    .obra-info h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
     .obra-info p { font-size: 0.88rem; color: var(--gray); line-height: 1.6; }
-
     .obra-card-footer {
       display: flex; align-items: center; justify-content: space-between;
       padding: 0.8rem 1.5rem 1.2rem;
@@ -207,36 +183,37 @@
       border-bottom: 1px solid transparent; transition: border-color 0.2s;
     }
     .ver-mais:hover { border-color: var(--gold); }
-
-    /* ── EMPTY STATE ─────────────────────────── */
-    .empty-state {
-      text-align: center; padding: 5rem 2rem; color: var(--gray);
+    .obra-admin-actions { display: none; gap: 0.5rem; position: absolute; bottom: 10px; right: 10px; }
+    .obra-admin-actions.visible { display: flex; }
+    .obra-action-btn {
+      padding: 4px 10px; font-size: 0.72rem; letter-spacing: 0.08em;
+      border: none; border-radius: 2px; cursor: pointer; transition: opacity 0.2s;
     }
-    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
-    .empty-state p { font-size: 0.95rem; }
+    .obra-action-btn:hover { opacity: 0.8; }
+    .btn-edit { background: var(--gold); color: var(--dark); }
+    .btn-delete { background: var(--rust); color: white; }
 
-    /* ── FOOTER ──────────────────────────────── */
+    /* ── EMPTY STATE ─── */
+    .empty-state { text-align: center; padding: 5rem 2rem; color: var(--gray); grid-column: 1/-1; }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+
+    /* ── FOOTER ─── */
     footer {
       background: var(--dark); color: rgba(255,255,255,0.5);
       padding: 2.5rem 3rem;
       display: flex; align-items: center; justify-content: space-between;
       flex-wrap: wrap; gap: 1rem;
     }
-    footer .footer-brand {
-      font-family: 'Playfair Display', serif;
-      color: var(--gold); font-size: 1.1rem;
-    }
-    footer .footer-links { display: flex; gap: 1.5rem; align-items: center; }
+    footer .footer-brand { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.1rem; }
     footer a {
       color: rgba(255,255,255,0.5); text-decoration: none;
       font-size: 0.82rem; letter-spacing: 0.08em;
-      display: flex; align-items: center; gap: 6px;
-      transition: color 0.2s;
+      display: flex; align-items: center; gap: 6px; transition: color 0.2s;
     }
     footer a:hover { color: var(--gold); }
     footer .copy { font-size: 0.75rem; }
 
-    /* ── FAB + BUTTON ──────────────────────────── */
+    /* ── FAB ─── */
     .fab {
       position: fixed; bottom: 2.5rem; right: 2.5rem;
       width: 56px; height: 56px; border-radius: 50%;
@@ -244,13 +221,12 @@
       font-size: 1.8rem; font-weight: 300;
       border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(200,169,110,0.5);
       display: none; align-items: center; justify-content: center;
-      transition: transform 0.2s, box-shadow 0.2s;
-      z-index: 200;
+      transition: transform 0.2s, box-shadow 0.2s; z-index: 200;
     }
     .fab.visible { display: flex; }
     .fab:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(200,169,110,0.6); }
 
-    /* ── MODAL GENÉRICO ──────────────────────── */
+    /* ── MODAL ─── */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(26,23,20,0.75); backdrop-filter: blur(6px);
@@ -263,23 +239,14 @@
       box-shadow: 0 24px 80px rgba(0,0,0,0.4);
       animation: slideUp 0.3s ease;
     }
-    @keyframes slideUp {
-      from { transform: translateY(30px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-
+    @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .modal-header {
       padding: 1.8rem 2rem 1.2rem;
       border-bottom: 1px solid var(--light-gray);
       display: flex; align-items: center; justify-content: space-between;
     }
-    .modal-header h3 {
-      font-family: 'Playfair Display', serif; font-size: 1.4rem;
-    }
-    .modal-close {
-      background: none; border: none; font-size: 1.5rem;
-      cursor: pointer; color: var(--gray); line-height: 1; padding: 0;
-    }
+    .modal-header h3 { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray); }
     .modal-body { padding: 1.8rem 2rem; }
     .modal-footer { padding: 1rem 2rem 1.8rem; display: flex; justify-content: flex-end; gap: 0.8rem; }
 
@@ -288,12 +255,10 @@
       width: 100%; padding: 0.7rem 0.9rem;
       border: 1px solid var(--light-gray); border-radius: 2px;
       font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
-      background: white; color: var(--dark);
-      transition: border-color 0.2s;
+      background: white; color: var(--dark); transition: border-color 0.2s;
     }
     input:focus, textarea:focus, select:focus { outline: none; border-color: var(--gold); }
     textarea { resize: vertical; min-height: 90px; }
-
     .btn-primary {
       background: var(--dark); color: var(--cream);
       border: none; padding: 0.75rem 2rem;
@@ -302,6 +267,7 @@
       border-radius: 2px; transition: background 0.2s;
     }
     .btn-primary:hover { background: var(--gold); color: var(--dark); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-secondary {
       background: none; border: 1px solid var(--light-gray); color: var(--gray);
       padding: 0.75rem 1.5rem;
@@ -310,14 +276,9 @@
     }
     .btn-secondary:hover { border-color: var(--dark); color: var(--dark); }
 
-    /* image preview grid */
-    .img-preview-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.8rem;
-    }
-    .img-thumb-preview {
-      aspect-ratio: 1; background: var(--light-gray); border-radius: 2px;
-      overflow: hidden; position: relative;
-    }
+    /* img preview */
+    .img-preview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.8rem; }
+    .img-thumb-preview { aspect-ratio: 1; background: var(--light-gray); border-radius: 2px; overflow: hidden; position: relative; }
     .img-thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
     .img-thumb-preview .remove-img {
       position: absolute; top: 2px; right: 2px;
@@ -333,16 +294,10 @@
     .img-upload-area:hover { border-color: var(--gold); }
     .img-upload-area input { display: none; }
 
-    /* obra viewer modal */
+    /* obra viewer */
     .obra-modal { max-width: 860px; }
-    .obra-modal-slider {
-      position: relative; height: 380px; background: var(--dark);
-      overflow: hidden;
-    }
-    .obra-modal-img {
-      position: absolute; inset: 0;
-      opacity: 0; transition: opacity 0.5s;
-    }
+    .obra-modal-slider { position: relative; height: 380px; background: var(--dark); overflow: hidden; }
+    .obra-modal-img { position: absolute; inset: 0; opacity: 0; transition: opacity 0.5s; }
     .obra-modal-img.active { opacity: 1; }
     .obra-modal-img img { width: 100%; height: 100%; object-fit: cover; }
     .obra-slider-prev, .obra-slider-next {
@@ -350,7 +305,7 @@
       background: rgba(26,23,20,0.6); color: white; border: none;
       width: 40px; height: 40px; border-radius: 50%;
       font-size: 1.2rem; cursor: pointer; transition: background 0.2s;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center; z-index: 2;
     }
     .obra-slider-prev { left: 1rem; }
     .obra-slider-next { right: 1rem; }
@@ -360,31 +315,7 @@
     .obra-modal-info p { color: var(--gray); line-height: 1.7; margin-top: 0.8rem; }
     .obra-modal-meta { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; }
 
-    /* admin action buttons on card */
-    .obra-admin-actions {
-      display: none; gap: 0.5rem;
-      position: absolute; bottom: 10px; right: 10px;
-    }
-    .obra-admin-actions.visible { display: flex; }
-    .obra-action-btn {
-      padding: 4px 10px; font-size: 0.72rem; letter-spacing: 0.08em;
-      border: none; border-radius: 2px; cursor: pointer; transition: opacity 0.2s;
-    }
-    .obra-action-btn:hover { opacity: 0.8; }
-    .btn-edit { background: var(--gold); color: var(--dark); }
-    .btn-delete { background: var(--rust); color: white; }
-
-    .obra-thumb { position: relative; }
-
-    /* password modal */
-    .pass-hint { font-size: 0.78rem; color: var(--gray); margin-top: 0.5rem; }
-    .pass-error { color: var(--rust); font-size: 0.8rem; margin-top: 0.4rem; display: none; }
-
-    /* settings section */
-    .settings-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--light-gray); }
-    .settings-section h4 { font-size: 0.85rem; color: var(--gray); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem; }
-
-    /* hero image manager */
+    /* hero manager */
     .hero-img-list { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.8rem; }
     .hero-img-item {
       display: flex; align-items: center; gap: 0.8rem;
@@ -396,6 +327,13 @@
     .hero-img-item .hi-sub { font-size: 0.72rem; color: var(--gray); }
     .hero-img-item button { background: none; border: none; cursor: pointer; color: var(--rust); font-size: 1rem; }
 
+    /* settings */
+    .settings-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--light-gray); }
+    .settings-section h4 { font-size: 0.85rem; color: var(--gray); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem; }
+
+    /* pass error */
+    .pass-error { color: var(--rust); font-size: 0.8rem; margin-top: 0.4rem; display: none; }
+
     /* toast */
     .toast {
       position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(80px);
@@ -406,7 +344,6 @@
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
-    /* responsive */
     @media (max-width: 768px) {
       header { padding: 1rem 1.5rem; }
       .section-obras { padding: 4rem 1.5rem 3rem; }
@@ -418,6 +355,12 @@
   </style>
 </head>
 <body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div class="loading-title">Obras Ednilson</div>
+  <div class="loading-spinner"></div>
+</div>
 
 <!-- HEADER -->
 <header>
@@ -431,13 +374,12 @@
 <section class="hero" id="hero">
   <div id="heroSlides"></div>
   <div class="hero-overlay"></div>
-  <div class="hero-content" id="heroContent">
+  <div class="hero-content">
     <span class="hero-slide-label" id="heroLabel">Engenharia &amp; Construção</span>
     <h2 id="heroTitle">Obras com Excelência e Dedicação</h2>
     <p id="heroSub">Projetos de qualidade assinados por Ednilson</p>
   </div>
   <div class="hero-dots" id="heroDots"></div>
-
   <div class="hero-admin-controls" id="heroAdminCtrl">
     <button class="hero-ctrl-btn" onclick="openHeroManager()">🖼 Gerenciar Imagens do Banner</button>
     <button class="hero-ctrl-btn" onclick="openSettings()">⚙ Configurações</button>
@@ -448,7 +390,7 @@
 <section class="section-obras">
   <div class="section-header">
     <h2>Portfólio de Obras</h2>
-    <span id="obrasCount">0 obras</span>
+    <span id="obrasCount">carregando...</span>
   </div>
   <div class="filter-bar">
     <button class="filter-pill active" onclick="filterObras('all', this)">Todas</button>
@@ -456,13 +398,15 @@
     <button class="filter-pill" onclick="filterObras('VENDIDA', this)">Vendidas</button>
     <button class="filter-pill" onclick="filterObras('EM CONSTRUÇÃO', this)">Em Construção</button>
   </div>
-  <div class="obras-grid" id="obrasGrid"></div>
+  <div class="obras-grid" id="obrasGrid">
+    <div class="empty-state"><div class="icon">🏗</div><p>Carregando obras...</p></div>
+  </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
   <div class="footer-brand" id="footerBrand">Obras Ednilson</div>
-  <div class="footer-links">
+  <div>
     <a id="igLink" href="https://instagram.com" target="_blank">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
       Instagram
@@ -473,15 +417,11 @@
 
 <!-- FAB -->
 <button class="fab" id="fab" onclick="openAddObra()">+</button>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- ══════════════════════════════════════════
-     MODAIS
-══════════════════════════════════════════ -->
+<!-- ══ MODAIS ══ -->
 
-<!-- SENHA ADMIN -->
+<!-- SENHA -->
 <div class="modal-overlay" id="passModal">
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
@@ -489,9 +429,9 @@
       <button class="modal-close" onclick="closeModal('passModal')">×</button>
     </div>
     <div class="modal-body">
-      <label for="passInput">Senha</label>
+      <label>Senha</label>
       <input type="password" id="passInput" placeholder="Digite a senha..." onkeydown="if(event.key==='Enter')checkPass()">
-      <div class="pass-error" id="passError">Senha incorreta. Tente novamente.</div>
+      <div class="pass-error" id="passError">Senha incorreta.</div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('passModal')">Cancelar</button>
@@ -500,7 +440,7 @@
   </div>
 </div>
 
-<!-- ADD / EDIT OBRA -->
+<!-- ADD/EDIT OBRA -->
 <div class="modal-overlay" id="obraModal">
   <div class="modal">
     <div class="modal-header">
@@ -512,17 +452,14 @@
       <div class="img-upload-area" onclick="document.getElementById('imgInput').click()">
         <input type="file" id="imgInput" multiple accept="image/*" onchange="handleImgUpload(event)">
         <p>Clique para adicionar imagens</p>
-        <p style="font-size:0.75rem;margin-top:4px;color:var(--gray)">JPG, PNG, WEBP</p>
+        <p style="font-size:0.75rem;margin-top:4px">JPG, PNG, WEBP</p>
       </div>
       <div class="img-preview-grid" id="imgPreviewGrid"></div>
-
-      <label for="obraTitle">Título</label>
+      <label>Título</label>
       <input type="text" id="obraTitle" placeholder="Nome da obra...">
-
-      <label for="obraDesc">Descrição</label>
+      <label>Descrição</label>
       <textarea id="obraDesc" placeholder="Descreva a obra..."></textarea>
-
-      <label for="obraStatus">Status</label>
+      <label>Status</label>
       <select id="obraStatus">
         <option value="A VENDA">À Venda</option>
         <option value="VENDIDA">Vendida</option>
@@ -531,7 +468,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('obraModal')">Cancelar</button>
-      <button class="btn-primary" onclick="saveObra()">Publicar Obra</button>
+      <button class="btn-primary" id="saveObraBtn" onclick="saveObra()">Publicar Obra</button>
     </div>
   </div>
 </div>
@@ -556,7 +493,7 @@
   </div>
 </div>
 
-<!-- GERENCIAR HERO IMAGES -->
+<!-- HERO MANAGER -->
 <div class="modal-overlay" id="heroModal">
   <div class="modal">
     <div class="modal-header">
@@ -564,7 +501,7 @@
       <button class="modal-close" onclick="closeModal('heroModal')">×</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:0.85rem;color:var(--gray);margin-bottom:1rem">Estas imagens aparecem na tela inicial em destaque.</p>
+      <p style="font-size:0.85rem;color:var(--gray);margin-bottom:1rem">Imagens exibidas no topo da página.</p>
       <div class="img-upload-area" onclick="document.getElementById('heroImgInput').click()">
         <input type="file" id="heroImgInput" multiple accept="image/*" onchange="handleHeroImgUpload(event)">
         <p>Adicionar nova imagem ao banner</p>
@@ -587,12 +524,12 @@
     <div class="modal-body">
       <div class="settings-section">
         <h4>Nome do Site</h4>
-        <label for="cfgSiteName">Nome exibido no cabeçalho e rodapé</label>
+        <label>Nome exibido no cabeçalho e rodapé</label>
         <input type="text" id="cfgSiteName" placeholder="Ex: Obras Ednilson">
       </div>
       <div class="settings-section">
         <h4>Instagram</h4>
-        <label for="cfgInstagram">Link do Instagram</label>
+        <label>Link do Instagram</label>
         <input type="text" id="cfgInstagram" placeholder="https://instagram.com/seuperfil">
       </div>
     </div>
@@ -604,71 +541,90 @@
 </div>
 
 <script>
-/* ════════════════════════════════════════
+/* ════════════════════════════════
+   SUPABASE CONFIG
+════════════════════════════════ */
+const SUPABASE_URL  = 'https://bmxquocpgcyvuayaclrc.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJteHF1b2NwZ2N5dnVheWFjbHJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTc2MDQsImV4cCI6MjA4ODgzMzYwNH0.u27oUX57zS3-l_Y07t2zE22Zd-L435l37cSCSktrbgg';
+const ADMIN_PASS    = 'th19vt26';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ════════════════════════════════
    STATE
-════════════════════════════════════════ */
-const ADMIN_PASS = 'th19vt26';
-
-let state = JSON.parse(localStorage.getItem('obrasState') || 'null') || {
-  siteName: 'Obras Ednilson',
-  instagram: 'https://instagram.com',
-  obras: [],
-  heroImages: [
-    {
-      url: 'https://images.unsplash.com/photo-1590168639800-73a55eb9e5be?w=1600&q=80',
-      title: 'Construção de Excelência',
-      label: 'Engenharia Civil'
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1600&q=80',
-      title: 'Projetos que Transformam',
-      label: 'Arquitetura & Obras'
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1600&q=80',
-      title: 'Qualidade em Cada Detalhe',
-      label: 'Portfólio'
-    }
-  ]
-};
-
+════════════════════════════════ */
 let isAdmin = false;
 let currentFilter = 'all';
+let allObras = [];
+let siteConfig = { site_name: 'Obras Ednilson', instagram: 'https://instagram.com', hero_images: [] };
 let heroIndex = 0;
 let heroTimer;
-
-// obra form state
 let editingObraId = null;
 let formImages = [];
-
-// view modal
 let viewImages = [];
 let viewIndex = 0;
 
-/* ════════════════════════════════════════
-   PERSIST
-════════════════════════════════════════ */
-function save() { localStorage.setItem('obrasState', JSON.stringify(state)); }
-
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    INIT
-════════════════════════════════════════ */
-function init() {
+════════════════════════════════ */
+async function init() {
+  await loadConfig();
+  await loadObras();
+  hideLoading();
+}
+
+function hideLoading() {
+  const s = document.getElementById('loadingScreen');
+  s.classList.add('hide');
+  setTimeout(() => s.remove(), 600);
+}
+
+/* ════════════════════════════════
+   CONFIG (Supabase)
+════════════════════════════════ */
+async function loadConfig() {
+  const { data, error } = await db.from('config').select('*').eq('id', 1).single();
+  if (data) {
+    siteConfig = data;
+    // hero_images pode vir como string JSON dependendo do tipo da coluna
+    if (typeof siteConfig.hero_images === 'string') {
+      try { siteConfig.hero_images = JSON.parse(siteConfig.hero_images); } catch { siteConfig.hero_images = []; }
+    }
+    if (!Array.isArray(siteConfig.hero_images)) siteConfig.hero_images = [];
+  }
   applySiteConfig();
   renderHero();
-  renderObras();
+}
+
+async function saveConfigToDB() {
+  await db.from('config').upsert({
+    id: 1,
+    site_name: siteConfig.site_name,
+    instagram: siteConfig.instagram,
+    hero_images: siteConfig.hero_images
+  });
 }
 
 function applySiteConfig() {
-  document.getElementById('siteTitle').textContent = state.siteName;
-  document.getElementById('footerBrand').textContent = state.siteName;
-  document.title = state.siteName;
-  document.getElementById('igLink').href = state.instagram;
+  document.getElementById('siteTitle').textContent  = siteConfig.site_name;
+  document.getElementById('footerBrand').textContent = siteConfig.site_name;
+  document.title = siteConfig.site_name;
+  document.getElementById('igLink').href = siteConfig.instagram;
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
+   OBRAS (Supabase)
+════════════════════════════════ */
+async function loadObras() {
+  const { data, error } = await db.from('obras').select('*').order('created_at', { ascending: false });
+  allObras = data || [];
+  renderObras();
+}
+
+/* ════════════════════════════════
    HERO
-════════════════════════════════════════ */
+════════════════════════════════ */
 function renderHero() {
   clearTimeout(heroTimer);
   const container = document.getElementById('heroSlides');
@@ -676,14 +632,13 @@ function renderHero() {
   container.innerHTML = '';
   dotsContainer.innerHTML = '';
 
-  if (!state.heroImages.length) {
-    document.getElementById('heroTitle').textContent = state.siteName;
-    document.getElementById('heroLabel').textContent = 'Engenharia & Construção';
-    document.getElementById('heroSub').textContent = '';
+  const imgs = siteConfig.hero_images;
+  if (!imgs || !imgs.length) {
+    document.getElementById('heroTitle').textContent = siteConfig.site_name;
     return;
   }
 
-  state.heroImages.forEach((img, i) => {
+  imgs.forEach((img, i) => {
     const slide = document.createElement('div');
     slide.className = 'hero-slide' + (i === 0 ? ' active' : '');
     slide.style.backgroundImage = `url(${img.url})`;
@@ -697,38 +652,32 @@ function renderHero() {
 
   heroIndex = 0;
   updateHeroContent();
-  scheduleHeroTimer();
+  if (imgs.length > 1) scheduleHeroTimer();
 }
 
 function updateHeroContent() {
-  const img = state.heroImages[heroIndex];
+  const img = siteConfig.hero_images[heroIndex];
   if (!img) return;
-  document.getElementById('heroTitle').textContent = img.title || state.siteName;
+  document.getElementById('heroTitle').textContent = img.title || siteConfig.site_name;
   document.getElementById('heroLabel').textContent = img.label || 'Engenharia & Construção';
-  document.getElementById('heroSub').textContent = img.sub || '';
-
+  document.getElementById('heroSub').textContent   = img.sub || '';
   document.querySelectorAll('.hero-slide').forEach((s,i) => s.classList.toggle('active', i === heroIndex));
-  document.querySelectorAll('.hero-dot').forEach((d,i) => d.classList.toggle('active', i === heroIndex));
+  document.querySelectorAll('.hero-dot').forEach((d,i)   => d.classList.toggle('active', i === heroIndex));
 }
 
-function goToHeroSlide(i) {
-  heroIndex = i;
-  updateHeroContent();
-  scheduleHeroTimer();
-}
-
+function goToHeroSlide(i) { heroIndex = i; updateHeroContent(); scheduleHeroTimer(); }
 function scheduleHeroTimer() {
   clearTimeout(heroTimer);
   heroTimer = setTimeout(() => {
-    heroIndex = (heroIndex + 1) % state.heroImages.length;
+    heroIndex = (heroIndex + 1) % siteConfig.hero_images.length;
     updateHeroContent();
     scheduleHeroTimer();
   }, 5000);
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    OBRAS RENDER
-════════════════════════════════════════ */
+════════════════════════════════ */
 function statusClass(s) {
   if (s === 'A VENDA') return 'status-venda';
   if (s === 'VENDIDA') return 'status-vendida';
@@ -737,35 +686,31 @@ function statusClass(s) {
 
 function renderObras() {
   const grid = document.getElementById('obrasGrid');
-  const obras = currentFilter === 'all' ? state.obras : state.obras.filter(o => o.status === currentFilter);
-
-  document.getElementById('obrasCount').textContent = `${state.obras.length} obra${state.obras.length !== 1 ? 's' : ''}`;
+  const obras = currentFilter === 'all' ? allObras : allObras.filter(o => o.status === currentFilter);
+  document.getElementById('obrasCount').textContent = `${allObras.length} obra${allObras.length !== 1 ? 's' : ''}`;
 
   if (!obras.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="icon">🏗</div>
-      <p>Nenhuma obra ${currentFilter !== 'all' ? 'com este status ' : ''}publicada ainda.</p>
-    </div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="icon">🏗</div><p>Nenhuma obra${currentFilter !== 'all' ? ' com este status' : ''} publicada ainda.</p></div>`;
     return;
   }
 
   grid.innerHTML = obras.map(obra => {
-    const thumb = obra.images[0] || '';
-    return `<div class="obra-card" id="card-${obra.id}">
+    const thumb = (obra.images && obra.images[0]) || '';
+    return `<div class="obra-card">
       <div class="obra-thumb">
         <img src="${thumb}" alt="${obra.title}" loading="lazy">
         <span class="status-badge ${statusClass(obra.status)}">${obra.status}</span>
-        <div class="obra-admin-actions ${isAdmin ? 'visible' : ''}" id="actions-${obra.id}">
+        <div class="obra-admin-actions ${isAdmin ? 'visible' : ''}">
           <button class="obra-action-btn btn-edit" onclick="event.stopPropagation();openEditObra('${obra.id}')">Editar</button>
           <button class="obra-action-btn btn-delete" onclick="event.stopPropagation();deleteObra('${obra.id}')">Excluir</button>
         </div>
       </div>
       <div class="obra-info" onclick="openViewObra('${obra.id}')">
         <h3>${obra.title}</h3>
-        <p>${obra.desc.substring(0,100)}${obra.desc.length > 100 ? '...' : ''}</p>
+        <p>${(obra.desc||'').substring(0,100)}${(obra.desc||'').length > 100 ? '...' : ''}</p>
       </div>
       <div class="obra-card-footer">
-        <span>${obra.images.length} foto${obra.images.length !== 1 ? 's' : ''}</span>
+        <span>${(obra.images||[]).length} foto${(obra.images||[]).length !== 1 ? 's' : ''}</span>
         <a class="ver-mais" onclick="openViewObra('${obra.id}')">Ver obra →</a>
       </div>
     </div>`;
@@ -779,9 +724,9 @@ function filterObras(f, btn) {
   renderObras();
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    ADMIN
-════════════════════════════════════════ */
+════════════════════════════════ */
 function handleAdminToggle() {
   if (isAdmin) {
     isAdmin = false;
@@ -798,8 +743,7 @@ function handleAdminToggle() {
 }
 
 function checkPass() {
-  const v = document.getElementById('passInput').value;
-  if (v === ADMIN_PASS) {
+  if (document.getElementById('passInput').value === ADMIN_PASS) {
     isAdmin = true;
     document.getElementById('passError').style.display = 'none';
     document.getElementById('passInput').value = '';
@@ -817,29 +761,29 @@ function checkPass() {
   }
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    ADD / EDIT OBRA
-════════════════════════════════════════ */
+════════════════════════════════ */
 function openAddObra() {
-  editingObraId = null;
-  formImages = [];
+  editingObraId = null; formImages = [];
   document.getElementById('obraTitle').value = '';
   document.getElementById('obraDesc').value = '';
   document.getElementById('obraStatus').value = 'A VENDA';
   document.getElementById('imgPreviewGrid').innerHTML = '';
   document.getElementById('obraModalTitle').textContent = 'Publicar Nova Obra';
+  document.getElementById('saveObraBtn').textContent = 'Publicar Obra';
   openModal('obraModal');
 }
 
 function openEditObra(id) {
-  const obra = state.obras.find(o => o.id === id);
+  const obra = allObras.find(o => o.id === id);
   if (!obra) return;
-  editingObraId = id;
-  formImages = [...obra.images];
+  editingObraId = id; formImages = [...(obra.images || [])];
   document.getElementById('obraTitle').value = obra.title;
-  document.getElementById('obraDesc').value = obra.desc;
+  document.getElementById('obraDesc').value = obra.desc || '';
   document.getElementById('obraStatus').value = obra.status;
   document.getElementById('obraModalTitle').textContent = 'Editar Obra';
+  document.getElementById('saveObraBtn').textContent = 'Salvar Alterações';
   renderFormImgPreview();
   openModal('obraModal');
 }
@@ -847,13 +791,9 @@ function openEditObra(id) {
 function handleImgUpload(e) {
   const files = Array.from(e.target.files);
   const remaining = 7 - formImages.length;
-  const toAdd = files.slice(0, remaining);
-  toAdd.forEach(f => {
+  files.slice(0, remaining).forEach(f => {
     const reader = new FileReader();
-    reader.onload = ev => {
-      formImages.push(ev.target.result);
-      renderFormImgPreview();
-    };
+    reader.onload = ev => { formImages.push(ev.target.result); renderFormImgPreview(); };
     reader.readAsDataURL(f);
   });
   e.target.value = '';
@@ -861,184 +801,170 @@ function handleImgUpload(e) {
 }
 
 function renderFormImgPreview() {
-  const grid = document.getElementById('imgPreviewGrid');
-  grid.innerHTML = formImages.map((src, i) => `
-    <div class="img-thumb-preview">
+  document.getElementById('imgPreviewGrid').innerHTML = formImages.map((src, i) =>
+    `<div class="img-thumb-preview">
       <img src="${src}" alt="">
       <button class="remove-img" onclick="removeFormImg(${i})">×</button>
     </div>`).join('');
 }
 
-function removeFormImg(i) {
-  formImages.splice(i, 1);
-  renderFormImgPreview();
-}
+function removeFormImg(i) { formImages.splice(i, 1); renderFormImgPreview(); }
 
-function saveObra() {
-  const title = document.getElementById('obraTitle').value.trim();
-  const desc  = document.getElementById('obraDesc').value.trim();
+async function saveObra() {
+  const title  = document.getElementById('obraTitle').value.trim();
+  const desc   = document.getElementById('obraDesc').value.trim();
   const status = document.getElementById('obraStatus').value;
 
-  if (!title) { showToast('Digite um título para a obra'); return; }
+  if (!title) { showToast('Digite um título'); return; }
   if (formImages.length < 3) { showToast('Adicione pelo menos 3 imagens'); return; }
 
+  const btn = document.getElementById('saveObraBtn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
   if (editingObraId) {
-    const obra = state.obras.find(o => o.id === editingObraId);
-    if (obra) { obra.title = title; obra.desc = desc; obra.status = status; obra.images = formImages; }
+    const { error } = await db.from('obras').update({ title, desc, status, images: formImages }).eq('id', editingObraId);
+    if (error) { showToast('Erro ao salvar. Tente novamente.'); btn.disabled = false; btn.textContent = 'Salvar Alterações'; return; }
     showToast('Obra atualizada!');
   } else {
-    state.obras.push({ id: Date.now().toString(), title, desc, status, images: formImages });
+    const { error } = await db.from('obras').insert({ title, desc, status, images: formImages });
+    if (error) { showToast('Erro ao publicar. Tente novamente.'); btn.disabled = false; btn.textContent = 'Publicar Obra'; return; }
     showToast('Obra publicada!');
   }
 
-  save();
+  btn.disabled = false;
   closeModal('obraModal');
-  renderObras();
+  await loadObras();
 }
 
-function deleteObra(id) {
+async function deleteObra(id) {
   if (!confirm('Tem certeza que deseja excluir esta obra?')) return;
-  state.obras = state.obras.filter(o => o.id !== id);
-  save();
-  renderObras();
+  await db.from('obras').delete().eq('id', id);
   showToast('Obra removida');
+  await loadObras();
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    VIEW OBRA
-════════════════════════════════════════ */
+════════════════════════════════ */
 function openViewObra(id) {
-  const obra = state.obras.find(o => o.id === id);
+  const obra = allObras.find(o => o.id === id);
   if (!obra) return;
-
-  viewImages = obra.images;
-  viewIndex = 0;
-
+  viewImages = obra.images || []; viewIndex = 0;
   document.getElementById('viewTitle').textContent = obra.title;
-  document.getElementById('viewDesc').textContent = obra.desc;
+  document.getElementById('viewDesc').textContent  = obra.desc || '';
   const badge = document.getElementById('viewStatus');
   badge.textContent = obra.status;
   badge.className = 'status-badge ' + statusClass(obra.status);
-
   renderViewSlider();
   openModal('viewModal');
 }
 
 function renderViewSlider() {
   const slider = document.getElementById('viewSlider');
-  const prevBtn = slider.querySelector('.obra-slider-prev');
-  const nextBtn = slider.querySelector('.obra-slider-next');
+  const prev = slider.querySelector('.obra-slider-prev');
+  const next = slider.querySelector('.obra-slider-next');
   slider.innerHTML = '';
-  slider.appendChild(prevBtn);
-  slider.appendChild(nextBtn);
-
+  slider.appendChild(prev); slider.appendChild(next);
   viewImages.forEach((src, i) => {
     const div = document.createElement('div');
     div.className = 'obra-modal-img' + (i === viewIndex ? ' active' : '');
     div.innerHTML = `<img src="${src}" alt="">`;
-    slider.insertBefore(div, nextBtn);
+    slider.insertBefore(div, next);
   });
 }
 
 function viewPrev() { viewIndex = (viewIndex - 1 + viewImages.length) % viewImages.length; renderViewSlider(); }
 function viewNext() { viewIndex = (viewIndex + 1) % viewImages.length; renderViewSlider(); }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    HERO MANAGER
-════════════════════════════════════════ */
-function openHeroManager() {
-  renderHeroImgList();
-  openModal('heroModal');
-}
+════════════════════════════════ */
+function openHeroManager() { renderHeroImgList(); openModal('heroModal'); }
 
 function renderHeroImgList() {
   const list = document.getElementById('heroImgList');
-  if (!state.heroImages.length) { list.innerHTML = '<p style="font-size:0.82rem;color:var(--gray)">Nenhuma imagem no banner ainda.</p>'; return; }
-  list.innerHTML = state.heroImages.map((img, i) => `
-    <div class="hero-img-item">
+  if (!siteConfig.hero_images.length) { list.innerHTML = '<p style="font-size:0.82rem;color:var(--gray)">Nenhuma imagem no banner ainda.</p>'; return; }
+  list.innerHTML = siteConfig.hero_images.map((img, i) =>
+    `<div class="hero-img-item">
       <img src="${img.url}" alt="">
-      <div class="hi-info">
-        <div class="hi-title">${img.title || 'Sem título'}</div>
-        <div class="hi-sub">${img.label || ''}</div>
-      </div>
+      <div class="hi-info"><div class="hi-title">${img.title||'Sem título'}</div><div class="hi-sub">${img.label||''}</div></div>
       <button onclick="removeHeroImg(${i})" title="Remover">🗑</button>
     </div>`).join('');
 }
 
 function handleHeroImgUpload(e) {
   const files = Array.from(e.target.files);
+  let pending = files.length;
   files.forEach(f => {
     const reader = new FileReader();
-    reader.onload = ev => {
-      state.heroImages.push({ url: ev.target.result, title: state.siteName, label: 'Engenharia & Construção', sub: '' });
-      save();
-      renderHeroImgList();
-      renderHero();
+    reader.onload = async ev => {
+      siteConfig.hero_images.push({ url: ev.target.result, title: siteConfig.site_name, label: 'Engenharia & Construção', sub: '' });
+      pending--;
+      if (pending === 0) {
+        await saveConfigToDB();
+        renderHeroImgList();
+        renderHero();
+        showToast('Imagem adicionada!');
+      }
     };
     reader.readAsDataURL(f);
   });
   e.target.value = '';
 }
 
-function removeHeroImg(i) {
-  state.heroImages.splice(i, 1);
-  save();
+async function removeHeroImg(i) {
+  siteConfig.hero_images.splice(i, 1);
+  await saveConfigToDB();
   renderHeroImgList();
   renderHero();
+  showToast('Imagem removida');
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    SETTINGS
-════════════════════════════════════════ */
+════════════════════════════════ */
 function openSettings() {
-  document.getElementById('cfgSiteName').value = state.siteName;
-  document.getElementById('cfgInstagram').value = state.instagram;
+  document.getElementById('cfgSiteName').value  = siteConfig.site_name;
+  document.getElementById('cfgInstagram').value = siteConfig.instagram;
   openModal('settingsModal');
 }
 
-function saveSettings() {
+async function saveSettings() {
   const name = document.getElementById('cfgSiteName').value.trim();
   const ig   = document.getElementById('cfgInstagram').value.trim();
-  if (name) state.siteName = name;
-  if (ig)   state.instagram = ig;
-  save();
+  if (name) siteConfig.site_name = name;
+  if (ig)   siteConfig.instagram = ig;
+  await saveConfigToDB();
   applySiteConfig();
   closeModal('settingsModal');
   showToast('Configurações salvas!');
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    MODAL HELPERS
-════════════════════════════════════════ */
+════════════════════════════════ */
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'passModal') { document.getElementById('passError').style.display='none'; document.getElementById('passInput').value=''; }
 }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id)); });
 
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(overlay.id); });
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
-});
-
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    TOAST
-════════════════════════════════════════ */
+════════════════════════════════ */
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-/* ════════════════════════════════════════
+/* ════════════════════════════════
    BOOT
-════════════════════════════════════════ */
+════════════════════════════════ */
 init();
 </script>
 </body>
